@@ -93,7 +93,7 @@ class DashboardController extends Controller
         return view('dashboard.pembeli', [
             'role' => 'pembeli',
             'today' => now()->toDateString(),
-            'menus' => Menu::query()->with('penjual:id,name')->where('stok', '>', 0)->orderBy('nama')->get(),
+            'menus' => Menu::query()->with('penjual:id,name')->where('status', 'aktif')->orderByRaw('stok > 0 DESC')->orderBy('nama')->get(),
             'cartCount' => Cart::query()->where('user_id', $request->user()->id)->sum('jumlah'),
         ]);
     }
@@ -213,6 +213,13 @@ class DashboardController extends Controller
             ->where('menu_id', $validated['menu_id'])
             ->first();
 
+        $currentQty = $cart ? $cart->jumlah : 0;
+        $newTotal = $currentQty + (int) $validated['jumlah'];
+
+        if ($newTotal > $menu->stok) {
+            return redirect()->back()->withErrors(['menu_id' => "Jumlah melebihi stok tersedia ({$menu->stok})."]);
+        }
+
         if ($cart) {
             $cart->increment('jumlah', (int) $validated['jumlah']);
         } else {
@@ -228,12 +235,17 @@ class DashboardController extends Controller
 
     public function cartPage(Request $request): View
     {
+        $cartItems = Cart::query()
+            ->with('menu:id,nama,harga,stok')
+            ->where('user_id', $request->user()->id)
+            ->get();
+
+        $total = $cartItems->sum(fn (Cart $item) => (float) $item->menu->harga * $item->jumlah);
+
         return view('dashboard.pembeli-cart', [
             'role' => 'pembeli',
-            'cartItems' => Cart::query()
-                ->with('menu:id,nama,harga,stok')
-                ->where('user_id', $request->user()->id)
-                ->get(),
+            'cartItems' => $cartItems,
+            'total' => $total,
         ]);
     }
 
@@ -246,6 +258,12 @@ class DashboardController extends Controller
         $validated = $request->validate([
             'jumlah' => ['required', 'integer', 'min:1'],
         ]);
+
+        $menu = $cart->menu;
+
+        if ((int) $validated['jumlah'] > $menu->stok) {
+            return redirect()->back()->withErrors(['jumlah' => "Jumlah melebihi stok tersedia ({$menu->stok})." ]);
+        }
 
         $cart->update(['jumlah' => $validated['jumlah']]);
 
@@ -263,20 +281,9 @@ class DashboardController extends Controller
         return redirect()->route('dashboard.pembeli.cart')->with('status', 'Item dihapus dari keranjang.');
     }
 
-    public function checkoutPage(Request $request): View
+    public function checkoutPage(Request $request): RedirectResponse
     {
-        $cartItems = Cart::query()
-            ->with('menu:id,nama,harga,stok')
-            ->where('user_id', $request->user()->id)
-            ->get();
-
-        $total = $cartItems->sum(fn (Cart $item) => (float) $item->menu->harga * $item->jumlah);
-
-        return view('dashboard.pembeli-checkout', [
-            'role' => 'pembeli',
-            'cartItems' => $cartItems,
-            'total' => $total,
-        ]);
+        return redirect()->route('dashboard.pembeli.cart');
     }
 
     public function checkout(Request $request): RedirectResponse
@@ -403,6 +410,31 @@ class DashboardController extends Controller
             : 'Top up berhasil dibuat! Menunggu konfirmasi admin.';
 
         return redirect()->route('dashboard.pembeli.topup')->with('status', $msg);
+    }
+
+    public function lookupTopupTunai(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $kode = strtoupper(trim($request->query('kode', '')));
+
+        if (strlen($kode) < 4) {
+            return response()->json(['found' => false]);
+        }
+
+        $topup = Topup::query()
+            ->where('kode_transaksi', $kode)
+            ->where('metode', 'tunai')
+            ->where('status', 'pending')
+            ->first();
+
+        if (! $topup) {
+            return response()->json(['found' => false]);
+        }
+
+        return response()->json([
+            'found' => true,
+            'jumlah' => (float) $topup->jumlah,
+            'user' => $topup->user->name,
+        ]);
     }
 
     public function confirmTopupTunai(Request $request): RedirectResponse

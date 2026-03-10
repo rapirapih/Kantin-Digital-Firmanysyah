@@ -17,6 +17,7 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
     Route::patch('/users/{user}/role', [DashboardController::class, 'updateUserRole'])->name('dashboard.admin.users.role');
     Route::post('/topups/tunai', [DashboardController::class, 'confirmTopupTunai'])->name('dashboard.admin.topups.tunai');
     Route::patch('/topups/{topup}/confirm', [DashboardController::class, 'confirmTopupTransfer'])->name('dashboard.admin.topups.confirm');
+    Route::get('/topups/lookup', [DashboardController::class, 'lookupTopupTunai'])->name('dashboard.admin.topups.lookup');
 });
 
 Route::prefix('penjual')->middleware(['auth', 'role:penjual'])->group(function () {

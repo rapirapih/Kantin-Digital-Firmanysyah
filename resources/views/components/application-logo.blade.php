@@ -1,11 +1,7 @@
 <span {{ $attributes->merge(['class' => 'nav-brand']) }}>
-    <span class="nav-brand-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-        </svg>
-    </span>
+    <img src="{{ asset('images/Logo_SMK_Negeri_40_Jakarta.png') }}" alt="Logo SMK Negeri 40 Jakarta" class="w-10 h-10 rounded-xl object-contain">
     <span>
-        <span class="text-sm font-bold text-stone-800 leading-none block">Kantin Digital</span>
-        <span class="text-[10px] font-medium text-stone-400 leading-none block mt-0.5">E-Canteen System</span>
+        <span class="text-sm font-bold text-stone-800 leading-none block">E-MPU Store</span>
+        <span class="text-[10px] font-medium text-stone-400 leading-none block mt-0.5">SMK Negeri 40 Jakarta</span>
     </span>
 </span>

@@ -56,7 +56,7 @@
                 </div>
 
                 <!-- Saldo Info -->
-                <div class="panel-section flex items-center justify-between">
+                <div class="panel-section flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
                         <p class="text-sm font-medium text-stone-800">Saldo Kamu</p>
                         <p class="text-lg font-bold" style="color: {{ (float) auth()->user()->saldo >= $total ? 'var(--accent)' : 'var(--err-ink)' }};">
@@ -84,14 +84,14 @@
                         <div class="grid grid-cols-2 gap-3">
                             <label class="relative cursor-pointer">
                                 <input type="radio" name="waktu_ambil" value="istirahat_1" class="peer sr-only" checked>
-                                <div class="panel p-4 text-center peer-checked:border-orange-500 peer-checked:ring-2 peer-checked:ring-orange-100 transition-all duration-150">
+                                <div class="panel p-4 text-center peer-checked:border-red-500 peer-checked:ring-2 peer-checked:ring-red-100 transition-all duration-150">
                                     <svg class="w-6 h-6 mx-auto mb-1" style="color: var(--brand);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     <p class="font-semibold text-sm text-stone-800">Istirahat 1</p>
                                 </div>
                             </label>
                             <label class="relative cursor-pointer">
                                 <input type="radio" name="waktu_ambil" value="istirahat_2" class="peer sr-only">
-                                <div class="panel p-4 text-center peer-checked:border-orange-500 peer-checked:ring-2 peer-checked:ring-orange-100 transition-all duration-150">
+                                <div class="panel p-4 text-center peer-checked:border-red-500 peer-checked:ring-2 peer-checked:ring-red-100 transition-all duration-150">
                                     <svg class="w-6 h-6 mx-auto mb-1" style="color: var(--brand);" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     <p class="font-semibold text-sm text-stone-800">Istirahat 2</p>
                                 </div>

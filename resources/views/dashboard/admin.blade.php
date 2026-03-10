@@ -124,7 +124,7 @@
                                 <tr>
                                     <td>
                                         <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style="background: linear-gradient(135deg, var(--brand) 0%, #9a3412 100%);">
+                                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style="background: linear-gradient(135deg, #C62828 0%, #8E0000 100%);">
                                                 {{ strtoupper(substr($item->name, 0, 1)) }}
                                             </div>
                                             <span class="font-medium text-stone-800">{{ $item->name }}</span>
@@ -159,11 +159,54 @@
                         Penukaran Kode Tunai
                     </h3>
                     <p class="text-sm mb-4" style="color: var(--muted);">Masukkan kode transaksi yang diberikan pembeli beserta jumlah uang yang diterima.</p>
-                    <form method="POST" action="{{ route('dashboard.admin.topups.tunai') }}" class="space-y-4" x-data="{ uang: 0, jumlahTopup: 0 }">
+                    <form method="POST" action="{{ route('dashboard.admin.topups.tunai') }}" class="space-y-4"
+                          x-data="{
+                              kode: '',
+                              uang: 0,
+                              found: null,
+                              jumlah: 0,
+                              userName: '',
+                              loading: false,
+                              debounceTimer: null,
+                              lookup() {
+                                  clearTimeout(this.debounceTimer);
+                                  const val = this.kode.trim().toUpperCase();
+                                  if (val.length < 4) { this.found = null; this.jumlah = 0; this.userName = ''; return; }
+                                  this.loading = true;
+                                  this.debounceTimer = setTimeout(() => {
+                                      fetch('{{ route('dashboard.admin.topups.lookup') }}?kode=' + encodeURIComponent(val))
+                                          .then(r => r.json())
+                                          .then(d => {
+                                              this.loading = false;
+                                              this.found = d.found;
+                                              if (d.found) {
+                                                  this.jumlah = d.jumlah;
+                                                  this.userName = d.user;
+                                                  if (!this.uang) this.uang = d.jumlah;
+                                              } else {
+                                                  this.jumlah = 0;
+                                                  this.userName = '';
+                                              }
+                                          }).catch(() => { this.loading = false; });
+                                  }, 400);
+                              }
+                          }">
                         @csrf
                         <div>
                             <label class="field-label">Kode Transaksi</label>
-                            <input name="kode_transaksi" class="field font-mono uppercase tracking-widest text-center text-lg" placeholder="Contoh: A3F1B2C4" required maxlength="20" style="letter-spacing: 0.2em;">
+                            <input name="kode_transaksi" class="field font-mono uppercase tracking-widest text-center text-lg" placeholder="Contoh: A3F1B2C4" required maxlength="20" style="letter-spacing: 0.2em;" x-model="kode" @input="lookup()">
+                            <!-- Lookup feedback -->
+                            <template x-if="loading">
+                                <p class="text-xs mt-1" style="color: var(--muted);">Mencari...</p>
+                            </template>
+                            <template x-if="!loading && found === true">
+                                <p class="text-xs mt-1 text-green-600 font-medium">
+                                    Ditemukan &mdash; <span x-text="userName"></span> &bull; Rp <span x-text="Number(jumlah).toLocaleString('id-ID')"></span>
+                                </p>
+                            </template>
+                            <template x-if="!loading && found === false">
+                                <p class="text-xs mt-1 text-red-600 font-medium">Kode tidak ditemukan atau sudah digunakan.</p>
+                            </template>
                         </div>
                         <div>
                             <label class="field-label">Uang Diterima (Rp)</label>
@@ -205,7 +248,7 @@
                                     <tr>
                                         <td>
                                             <div class="flex items-center gap-2">
-                                                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style="background: linear-gradient(135deg, var(--brand) 0%, #9a3412 100%);">
+                                                <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style="background: linear-gradient(135deg, #C62828 0%, #8E0000 100%);">
                                                     {{ strtoupper(substr($topup->user->name, 0, 1)) }}
                                                 </div>
                                                 <span class="font-medium text-stone-700">{{ $topup->user->name }}</span>

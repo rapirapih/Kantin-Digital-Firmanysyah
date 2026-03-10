@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="mb-6">
         <h2 class="text-xl font-bold text-stone-800">Masuk ke akun</h2>
-        <p class="text-sm mt-1" style="color: var(--muted);">Selamat datang kembali di Kantin Digital</p>
+        <p class="text-sm mt-1" style="color: var(--muted);">Selamat datang kembali di E-MPU Store</p>
     </div>
 
     <x-auth-session-status class="mb-4" :status="session('status')" />

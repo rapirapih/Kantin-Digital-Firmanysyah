@@ -49,7 +49,7 @@
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors duration-150 hover:bg-stone-50">
-                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background: linear-gradient(135deg, var(--brand) 0%, #9a3412 100%);">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style="background: linear-gradient(135deg, #C62828 0%, #8E0000 100%);">
                                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                             </div>
                             <div class="text-left">
@@ -112,7 +112,7 @@
 
         <div class="py-3 px-4" style="background-color: var(--bg); border-top: 1px solid var(--line);">
             <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: linear-gradient(135deg, var(--brand) 0%, #9a3412 100%);">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold" style="background: linear-gradient(135deg, #C62828 0%, #8E0000 100%);">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </div>
                 <div>

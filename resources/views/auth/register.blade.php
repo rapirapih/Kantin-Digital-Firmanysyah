@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="mb-6">
         <h2 class="text-xl font-bold text-stone-800">Buat akun baru</h2>
-        <p class="text-sm mt-1" style="color: var(--muted);">Bergabung dengan Kantin Digital</p>
+        <p class="text-sm mt-1" style="color: var(--muted);">Bergabung dengan E-MPU Store</p>
     </div>
 
     <form method="POST" action="{{ route('register') }}" class="space-y-4">

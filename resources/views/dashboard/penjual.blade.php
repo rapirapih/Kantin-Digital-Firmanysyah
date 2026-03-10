@@ -144,10 +144,10 @@
                             <form method="POST" action="{{ route('dashboard.penjual.menus.update', $menu) }}" class="mt-2 flex flex-wrap gap-2 items-end" enctype="multipart/form-data">
                                 @csrf
                                 @method('PATCH')
-                                <input name="nama" value="{{ $menu->nama }}" class="field text-xs !w-32 !py-1.5" required>
-                                <input name="harga" type="number" min="0" value="{{ (float) $menu->harga }}" class="field text-xs !w-24 !py-1.5" required>
-                                <input name="stok" type="number" min="0" value="{{ $menu->stok }}" class="field text-xs !w-20 !py-1.5" placeholder="Stok" required>
-                                <input name="foto" type="file" accept="image/*" class="field text-xs !w-36 !py-1.5">
+                                <input name="nama" value="{{ $menu->nama }}" class="field text-xs w-full sm:!w-32 !py-1.5" required>
+                                <input name="harga" type="number" min="0" value="{{ (float) $menu->harga }}" class="field text-xs w-full sm:!w-24 !py-1.5" required>
+                                <input name="stok" type="number" min="0" value="{{ $menu->stok }}" class="field text-xs w-full sm:!w-20 !py-1.5" placeholder="Stok" required>
+                                <input name="foto" type="file" accept="image/*" class="field text-xs w-full sm:!w-36 !py-1.5">
                                 <button class="btn-primary btn-sm">Update</button>
                             </form>
                         </div>

@@ -20,7 +20,7 @@
                 </div>
             @endif
 
-            <!-- Orders Table -->
+            <!-- Orders -->
             <div class="panel-section overflow-hidden">
                 <div class="flex items-center justify-between mb-4">
                     <h3 class="section-title">
@@ -30,7 +30,8 @@
                     <span class="badge-gray text-xs">{{ $myOrders->total() }} pesanan</span>
                 </div>
 
-                <div class="overflow-x-auto -mx-5 sm:-mx-6">
+                {{-- Desktop Table --}}
+                <div class="hidden sm:block overflow-x-auto -mx-4 sm:-mx-5 lg:-mx-6">
                     <table class="table-clean min-w-full">
                         <thead>
                             <tr>
@@ -78,6 +79,47 @@
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                {{-- Mobile Card List --}}
+                <div class="sm:hidden space-y-3">
+                    @forelse ($myOrders as $order)
+                        @php
+                            $statusBadge = match($order->status_pesanan) {
+                                'menunggu' => 'badge-yellow',
+                                'diproses' => 'badge-blue',
+                                'selesai' => 'badge-green',
+                                'dibatalkan' => 'badge-red',
+                                default => 'badge-gray',
+                            };
+                            $waktuLabel = match($order->waktu_ambil) {
+                                'istirahat_1' => 'Istirahat 1',
+                                'istirahat_2' => 'Istirahat 2',
+                                default => $order->waktu_ambil,
+                            };
+                        @endphp
+                        <div class="rounded-xl p-4" style="background-color: var(--bg-warm); border: 1px solid var(--line-light);">
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <div class="min-w-0">
+                                    <p class="font-semibold text-stone-800 truncate">{{ $order->menu->nama }}</p>
+                                    <p class="text-xs" style="color: var(--muted);">{{ $order->created_at->format('d M Y, H:i') }}</p>
+                                </div>
+                                <span class="badge {{ $statusBadge }} shrink-0">{{ $order->status_pesanan }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <div class="flex items-center gap-3">
+                                    <span style="color: var(--muted);">{{ $order->jumlah }}x</span>
+                                    <span class="badge badge-gray text-[10px]">{{ $waktuLabel }}</span>
+                                </div>
+                                <p class="font-bold" style="color: var(--brand);">Rp {{ number_format($order->total_harga, 0, ',', '.') }}</p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="empty-state">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                            <p>Belum ada pesanan. Pesan makanan favoritmu!</p>
+                        </div>
+                    @endforelse
                 </div>
 
                 @if ($myOrders->hasPages())
