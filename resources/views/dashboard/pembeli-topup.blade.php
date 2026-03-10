@@ -13,23 +13,7 @@
                 </a>
             </div>
 
-            @if (session('status'))
-                <div class="status-banner">
-                    <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    <span>{{ session('status') }}</span>
-                </div>
-            @endif
 
-            @if ($errors->any())
-                <div class="error-banner">
-                    <p class="font-semibold mb-2">Validasi gagal:</p>
-                    <ul class="list-disc list-inside text-sm">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
             <!-- Saldo Card -->
             <div class="saldo-card">
@@ -46,11 +30,26 @@
                         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m6-6H6"/></svg>
                         Isi Saldo
                     </h3>
-                    <form method="POST" action="{{ route('dashboard.pembeli.topup.store') }}" class="space-y-4" enctype="multipart/form-data" x-data="{ metode: '{{ old('metode', 'tunai') }}' }">
+                    <form method="POST" action="{{ route('dashboard.pembeli.topup.store', [], false) }}" class="space-y-4" enctype="multipart/form-data"
+                        x-data="{
+                            metode: '{{ old('metode', 'tunai') }}',
+                            raw: {{ old('jumlah', 0) }},
+                            display: '',
+                            init() { if (this.raw) this.display = this.format(this.raw); },
+                            format(v) { return v.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); },
+                            onInput() {
+                                let nums = this.display.replace(/\D/g, '');
+                                if (nums.length > 7) nums = nums.slice(0, 7);
+                                this.raw = parseInt(nums) || 0;
+                                this.display = nums ? this.format(nums) : '';
+                            },
+                            setAmount(v) { this.raw = v; this.display = this.format(v); }
+                        }">
                         @csrf
                         <div>
                             <label class="field-label">Jumlah Top Up (Rp)</label>
-                            <input name="jumlah" type="number" min="1000" max="1000000" step="1000" placeholder="Contoh: 50000" class="field" required value="{{ old('jumlah') }}">
+                            <input type="hidden" name="jumlah" :value="raw">
+                            <input type="text" inputmode="numeric" x-model="display" @input="onInput()" placeholder="Contoh: 50.000" class="field" required>
                             <p class="text-xs mt-1" style="color: var(--muted);">Min. Rp 1.000 &mdash; Maks. Rp 1.000.000</p>
                         </div>
                         <div>
@@ -62,9 +61,31 @@
                             <p class="text-xs mt-1" style="color: var(--muted);" x-show="metode === 'tunai'">Kamu akan mendapat kode transaksi untuk ditukarkan di kasir.</p>
                             <p class="text-xs mt-1" style="color: var(--muted);" x-show="metode === 'transfer'">Upload bukti transfer untuk verifikasi admin.</p>
                         </div>
-                        <div x-show="metode === 'transfer'" x-transition>
-                            <label class="field-label">Bukti Transfer</label>
-                            <input name="bukti_transfer" type="file" accept="image/*" class="field">
+                        <div x-show="metode === 'transfer'" x-transition x-cloak class="space-y-3">
+                            <div class="rounded-xl p-4" style="background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 1px solid #fed7aa;">
+                                <p class="text-xs font-semibold mb-2" style="color: var(--brand);">
+                                    <svg class="w-4 h-4 inline -mt-0.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                    Transfer ke Rekening Berikut
+                                </p>
+                                <div class="space-y-1.5 text-sm">
+                                    <div class="flex justify-between">
+                                        <span style="color: var(--muted);">Bank</span>
+                                        <span class="font-semibold">BRI</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span style="color: var(--muted);">No. Rekening</span>
+                                        <span class="font-mono font-bold tracking-wide" style="color: var(--brand);">1234-5678-9012-3456</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span style="color: var(--muted);">Atas Nama</span>
+                                        <span class="font-semibold">Kantin SMKN 40 Jakarta</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="field-label">Bukti Transfer</label>
+                                <input name="bukti_transfer" type="file" accept="image/*" class="field">
+                            </div>
                         </div>
                         <div>
                             <label class="field-label">Catatan <span class="text-xs font-normal" style="color: var(--muted);">(opsional)</span></label>
@@ -77,7 +98,7 @@
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 @foreach ([5000, 10000, 20000, 50000, 75000, 100000] as $nominal)
                                     <button type="button"
-                                        onclick="document.querySelector('input[name=jumlah]').value = {{ $nominal }}"
+                                        @click="setAmount({{ $nominal }})"
                                         class="btn-secondary text-xs !px-2 !py-2">
                                         Rp {{ number_format($nominal, 0, ',', '.') }}
                                     </button>

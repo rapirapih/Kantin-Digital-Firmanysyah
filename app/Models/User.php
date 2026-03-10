@@ -24,6 +24,16 @@ class User extends Authenticatable
         'password',
         'saldo',
         'role',
+        'tipe_pengguna',
+        'nama_lengkap',
+        'nis',
+        'nik',
+        'kelas',
+        'jurusan',
+        'jenis_kelamin',
+        'foto_profile',
+        'no_whatsapp',
+        'profile_completed',
     ];
 
     /**

@@ -74,7 +74,7 @@
                 </div>
 
                 <!-- Checkout Form -->
-                <form method="POST" action="{{ route('dashboard.pembeli.checkout.store') }}">
+                <form method="POST" action="{{ route('dashboard.pembeli.checkout.store', [], false) }}">
                     @csrf
                     <div class="panel-section space-y-4">
                         <h3 class="section-title">

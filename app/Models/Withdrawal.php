@@ -13,6 +13,7 @@ class Withdrawal extends Model
     protected $fillable = [
         'user_id',
         'jumlah',
+        'potongan',
         'kode_penukaran',
         'status',
     ];
@@ -21,6 +22,7 @@ class Withdrawal extends Model
     {
         return [
             'jumlah' => 'decimal:2',
+            'potongan' => 'decimal:2',
         ];
     }
 

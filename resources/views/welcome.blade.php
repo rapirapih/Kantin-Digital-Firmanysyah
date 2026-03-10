@@ -38,7 +38,6 @@
                     <nav class="hidden lg:flex items-center gap-8">
                         <a href="#layanan" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Layanan</a>
                         <a href="#cara-kerja" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Cara Kerja</a>
-                        <a href="#portofolio" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Portofolio</a>
                     </nav>
 
                     {{-- Right buttons --}}
@@ -74,7 +73,6 @@
                 <div class="px-6 py-4 space-y-3">
                     <a href="#layanan" @click="mobileOpen = false" class="block text-base font-medium text-gray-700 py-2">Layanan</a>
                     <a href="#cara-kerja" @click="mobileOpen = false" class="block text-base font-medium text-gray-700 py-2">Cara Kerja</a>
-                    <a href="#portofolio" @click="mobileOpen = false" class="block text-base font-medium text-gray-700 py-2">Portofolio</a>
                     @guest
                         @if (Route::has('register'))
                             <a href="{{ route('register') }}" class="block w-full text-center px-5 py-2.5 bg-[#C62828] text-white text-sm font-semibold rounded-full mt-2">Daftar Sekarang</a>
@@ -133,8 +131,8 @@
                                 <div class="text-xs text-gray-400 mt-0.5 font-medium">Sesi Istirahat</div>
                             </div>
                             <div>
-                                <div class="text-2xl font-extrabold text-gray-900">&infin;</div>
-                                <div class="text-xs text-gray-400 mt-0.5 font-medium">Menu Variatif</div>
+                                <div class="text-2xl font-extrabold text-gray-900">1</div>
+                                <div class="text-xs text-gray-400 mt-0.5 font-medium">Sekolah</div>
                             </div>
                         </div>
                     </div>
@@ -194,26 +192,6 @@
                             <line x1="366" y1="390" x2="372" y2="390" stroke="#C62828" stroke-width="2.5"/>
                         </svg>
                     </div>
-                </div>
-            </div>
-        </section>
-
-        {{-- ═══════════════════════════════════════
-             LOGO BAR — monochrome on white
-        ═══════════════════════════════════════ --}}
-        <section class="bg-white border-y border-gray-100">
-            <div class="max-w-7xl mx-auto px-6 lg:px-8 py-10">
-                <p class="text-center text-xs font-semibold uppercase tracking-widest text-gray-400 mb-8">Dipercaya oleh sekolah & kantin</p>
-                <div class="grid grid-cols-3 sm:grid-cols-6 gap-8 items-center justify-items-center">
-                    @foreach (['SMK 40', 'Kantin A', 'Kantin B', 'Koperasi', 'OSIS', 'BK'] as $logo)
-                        <div class="flex items-center gap-2 opacity-40 hover:opacity-70 transition-opacity">
-                            <svg class="w-6 h-6 text-gray-900" viewBox="0 0 24 24" fill="none">
-                                <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="1.5"/>
-                                <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/>
-                            </svg>
-                            <span class="text-sm font-bold text-gray-900 tracking-tight hidden sm:block">{{ $logo }}</span>
-                        </div>
-                    @endforeach
                 </div>
             </div>
         </section>
@@ -336,68 +314,7 @@
         </section>
 
         {{-- ═══════════════════════════════════════
-             CTA BANNER — Red bg with rocket sketch
-        ═══════════════════════════════════════ --}}
-        <section class="bg-white">
-            <div class="max-w-7xl mx-auto px-6 lg:px-8 py-20 sm:py-28">
-                <div class="relative bg-[#C62828] rounded-[2rem] overflow-hidden">
-                    {{-- Decorative blobs --}}
-                    <div class="absolute top-0 right-0 w-72 h-72 rounded-full opacity-10" style="background: radial-gradient(circle, #FFD600, transparent 70%); transform: translate(30%, -40%);"></div>
-                    <div class="absolute bottom-0 left-0 w-56 h-56 rounded-full opacity-10" style="background: radial-gradient(circle, #FFD600, transparent 70%); transform: translate(-30%, 40%);"></div>
-
-                    <div class="relative z-10 grid lg:grid-cols-2 gap-10 items-center p-8 sm:p-12 lg:p-16">
-                        {{-- Text --}}
-                        <div>
-                            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight tracking-tight">
-                                Siap bergabung?<br>
-                                <span class="text-[#FFD600]">Daftar sekarang!</span>
-                            </h2>
-                            <p class="mt-4 text-red-100 text-lg leading-relaxed max-w-md">
-                                Rasakan kemudahan memesan makanan kantin sekolah tanpa harus mengantre.
-                            </p>
-                            <div class="mt-8 flex flex-wrap gap-3">
-                                @if (Route::has('register'))
-                                    <a href="{{ route('register') }}" class="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-[#C62828] text-sm font-bold rounded-full hover:bg-[#FFD600] hover:text-gray-900 transition-colors shadow-lg">
-                                        Daftar Sekarang
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-                                    </a>
-                                @endif
-                                @if (Route::has('login'))
-                                    <a href="{{ route('login') }}" class="inline-flex items-center gap-2 px-7 py-3.5 text-white text-sm font-semibold rounded-full border border-white/25 hover:bg-white/10 transition-colors">
-                                        Masuk ke Akun
-                                    </a>
-                                @endif
-                            </div>
-                        </div>
-                        {{-- Rocket illustration --}}
-                        <div class="hidden lg:flex items-center justify-center">
-                            <svg viewBox="0 0 400 350" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-auto max-w-sm">
-                                <ellipse cx="200" cy="160" rx="35" ry="70" stroke="white" stroke-width="2.5" fill="white" fill-opacity="0.1"/>
-                                <path d="M165 160 Q155 190 175 210" stroke="white" stroke-width="2" fill="#FFD600" fill-opacity="0.3"/>
-                                <path d="M235 160 Q245 190 225 210" stroke="white" stroke-width="2" fill="#FFD600" fill-opacity="0.3"/>
-                                <circle cx="200" cy="140" r="10" stroke="white" stroke-width="1.8" fill="white" fill-opacity="0.12"/>
-                                <path d="M185 210 L192 240 L200 225 L208 240 L215 210" stroke="white" stroke-width="2" fill="#FFD600" fill-opacity="0.5"/>
-                                <path d="M192 240 Q188 260 196 270 Q192 280 200 290" stroke="white" stroke-width="1.5" fill="none"/>
-                                <path d="M208 240 Q212 260 204 270 Q208 280 200 290" stroke="white" stroke-width="1.5" fill="none"/>
-                                <path d="M200 245 Q200 265 200 285" stroke="#FFD600" stroke-width="2" stroke-dasharray="3 4"/>
-                                {{-- Stars --}}
-                                <path d="M120 100 L124 88 L128 100 L140 104 L128 108 L124 120 L120 108 L108 104 Z" fill="#FFD600" fill-opacity="0.8" stroke="white" stroke-width="0.8"/>
-                                <path d="M280 80 L283 72 L286 80 L294 83 L286 86 L283 94 L280 86 L272 83 Z" fill="#FFD600" fill-opacity="0.6" stroke="white" stroke-width="0.8"/>
-                                <path d="M300 180 L302 174 L304 180 L310 182 L304 184 L302 190 L300 184 L294 182 Z" fill="#FFD600" fill-opacity="0.5" stroke="white" stroke-width="0.8"/>
-                                <path d="M90 180 L92 174 L94 180 L100 182 L94 184 L92 190 L90 184 L84 182 Z" fill="#FFD600" fill-opacity="0.5" stroke="white" stroke-width="0.8"/>
-                                {{-- Clouds --}}
-                                <ellipse cx="130" cy="200" rx="30" ry="12" stroke="white" stroke-width="1.2" fill="white" fill-opacity="0.1"/>
-                                <ellipse cx="145" cy="193" rx="18" ry="10" stroke="white" stroke-width="1.2" fill="white" fill-opacity="0.1"/>
-                                <ellipse cx="280" cy="160" rx="25" ry="10" stroke="white" stroke-width="1.2" fill="white" fill-opacity="0.1"/>
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        {{-- ═══════════════════════════════════════
-             CASE STUDIES / CARA KERJA — 3 cards dark bg
+             CARA KERJA — 3 cards dark bg
         ═══════════════════════════════════════ --}}
         <section id="cara-kerja" class="bg-gray-950 py-20 sm:py-28">
             <div class="max-w-7xl mx-auto px-6 lg:px-8">
@@ -501,7 +418,6 @@
                         <ul class="space-y-2.5">
                             <li><a href="#layanan" class="text-sm text-gray-400 hover:text-[#FFD600] transition-colors">Layanan</a></li>
                             <li><a href="#cara-kerja" class="text-sm text-gray-400 hover:text-[#FFD600] transition-colors">Cara Kerja</a></li>
-                            <li><a href="#portofolio" class="text-sm text-gray-400 hover:text-[#FFD600] transition-colors">Portofolio</a></li>
                         </ul>
                     </div>
                     <div>

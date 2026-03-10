@@ -7,22 +7,7 @@
 
     <div class="py-10 bg-slate-100 min-h-screen">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            @if (session('status'))
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
-                    {{ session('status') }}
-                </div>
-            @endif
 
-            @if ($errors->any())
-                <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">
-                    <p class="font-semibold mb-2">Validasi gagal:</p>
-                    <ul class="list-disc list-inside text-sm">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
 
             @if ($role === 'admin')
                 <div class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
@@ -90,7 +75,7 @@
                                     <td class="py-2">Rp {{ number_format($menu->harga, 0, ',', '.') }}</td>
                                     <td class="py-2">{{ $menu->status }}</td>
                                     <td class="py-2">
-                                        <form method="POST" action="{{ route('dashboard.admin.menus.delete', $menu) }}" onsubmit="return confirm('Hapus menu ini?')">
+                                        <form method="POST" action="{{ route('dashboard.admin.menus.delete', $menu) }}" x-data x-on:submit.prevent="$dispatch('confirm-action', { title: 'Hapus Menu', message: 'Yakin ingin menghapus menu ini?', type: 'danger', confirmText: 'Ya, Hapus', form: $el })">
                                             @csrf
                                             @method('DELETE')
                                             <button class="px-2 py-1 rounded bg-rose-600 text-white text-xs">Hapus</button>
@@ -130,7 +115,7 @@
                                     <td class="py-2">{{ $order->user->name }}</td>
                                     <td class="py-2">{{ $order->menu->nama }}</td>
                                     <td class="py-2">{{ $order->jumlah }}</td>
-                                    <td class="py-2">{{ $order->status_pesanan }}</td>
+                                    <td class="py-2">{{ ucfirst(str_replace('_', ' ', $order->status_pesanan)) }}</td>
                                     <td class="py-2">
                                         <form method="POST" action="{{ route('dashboard.penjual.orders.status', $order) }}" class="flex gap-2">
                                             @csrf
@@ -188,7 +173,7 @@
                                         <td class="py-2">{{ $order->menu->nama }}</td>
                                         <td class="py-2">{{ $order->jumlah }}</td>
                                         <td class="py-2">Rp {{ number_format($order->total_harga, 0, ',', '.') }}</td>
-                                        <td class="py-2">{{ $order->status_pesanan }}</td>
+                                        <td class="py-2">{{ ucfirst(str_replace('_', ' ', $order->status_pesanan)) }}</td>
                                     </tr>
                                 @empty
                                     <tr><td class="py-4 text-slate-500" colspan="4">Belum ada pesanan.</td></tr>

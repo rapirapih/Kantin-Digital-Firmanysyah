@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cart;
+use App\Models\Kategori;
 use App\Models\Menu;
 use App\Models\Order;
 use App\Models\Topup;
@@ -35,20 +36,13 @@ class DashboardController extends Controller
                 'total_pembeli' => User::query()->where('role', 'pembeli')->count(),
                 'total_pesanan_hari_ini' => Order::query()->whereDate('created_at', $today)->count(),
                 'omzet_hari_ini' => Order::query()->whereDate('created_at', $today)->sum('total_harga'),
+                'potongan_withdrawal_total' => Withdrawal::query()->sum('potongan'),
             ],
             'users' => User::query()->select(['id', 'name', 'email', 'role', 'saldo'])->orderBy('name')->get(),
-            'ordersToday' => Order::query()
-                ->with(['user:id,name', 'menu:id,nama'])
-                ->whereDate('created_at', $today)
-                ->latest()
-                ->limit(20)
-                ->get(),
             'pendingTransfers' => Topup::query()
-                ->with('user:id,name')
                 ->where('status', 'pending')
                 ->where('metode', 'transfer')
-                ->latest()
-                ->get(),
+                ->count(),
             'pendingTunaiCount' => Topup::query()
                 ->where('status', 'pending')
                 ->where('metode', 'tunai')
@@ -56,11 +50,6 @@ class DashboardController extends Controller
             'pendingWithdrawals' => Withdrawal::query()
                 ->where('status', 'pending')
                 ->count(),
-            'withdrawalHistory' => Withdrawal::query()
-                ->with('user:id,name')
-                ->latest()
-                ->limit(20)
-                ->get(),
         ]);
     }
 
@@ -73,31 +62,78 @@ class DashboardController extends Controller
             $waktuAmbil = 'istirahat_1';
         }
 
+        $search = $request->string('search')->toString();
+
+        $queueQuery = Order::query()
+            ->with(['user:id,name', 'menu:id,nama'])
+            ->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))
+            ->whereDate('created_at', $today)
+            ->where('waktu_ambil', $waktuAmbil);
+
+        if ($search !== '') {
+            $queueQuery->whereHas('user', fn ($q) => $q->where('name', 'like', '%' . $search . '%'));
+        }
+
         return view('dashboard.penjual', [
             'role' => 'penjual',
             'today' => $today,
             'selected_waktu_ambil' => $waktuAmbil,
-            'queue' => Order::query()
-                ->with(['user:id,name', 'menu:id,nama'])
-                ->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))
+            'search' => $search,
+            'queue' => $queueQuery->orderBy('created_at')->get(),
+            'saldo' => (float) $request->user()->saldo,
+            'newOrdersCount' => Order::query()
+                ->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))
                 ->whereDate('created_at', $today)
-                ->where('waktu_ambil', $waktuAmbil)
-                ->orderBy('created_at')
-                ->get(),
+                ->where('status_pesanan', 'menunggu')
+                ->count(),
+        ]);
+    }
+
+    public function penjualStatistik(Request $request): View
+    {
+        $penjualId = $request->user()->id;
+        $today = now()->toDateString();
+
+        return view('dashboard.penjual-statistik', [
+            'role' => 'penjual',
+            'today' => $today,
+            'stats' => [
+                'total_menu_saya' => Menu::query()->where('penjual_id', $penjualId)->count(),
+                'menunggu' => Order::query()->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'menunggu')->count(),
+                'diproses' => Order::query()->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'diproses')->count(),
+                'siap_diambil' => Order::query()->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'siap_diambil')->count(),
+                'selesai' => Order::query()->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'selesai')->count(),
+                'omzet_hari_ini' => Order::query()->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))->whereDate('created_at', $today)->whereNotIn('status_pesanan', ['dibatalkan'])->sum('total_harga'),
+                'total_pesanan_hari_ini' => Order::query()->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjualId))->whereDate('created_at', $today)->count(),
+            ],
+        ]);
+    }
+
+    public function penjualMenu(Request $request): View
+    {
+        $penjualId = $request->user()->id;
+
+        return view('dashboard.penjual-menu', [
+            'role' => 'penjual',
             'menus' => Menu::query()
                 ->where('penjual_id', $penjualId)
                 ->latest()
                 ->get(),
-            'stats' => [
-                'total_menu_saya' => Menu::query()->where('penjual_id', $penjualId)->count(),
-                'menunggu' => Order::query()->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'menunggu')->count(),
-                'diproses' => Order::query()->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'diproses')->count(),
-                'selesai' => Order::query()->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'selesai')->count(),
-            ],
+            'kategoris' => Kategori::query()->orderBy('nama')->pluck('nama'),
+        ]);
+    }
+
+    public function penjualTarikTunai(Request $request): View
+    {
+        $penjualId = $request->user()->id;
+
+        return view('dashboard.penjual-tarik-tunai', [
+            'role' => 'penjual',
+            'saldo' => (float) $request->user()->saldo,
             'withdrawals' => Withdrawal::query()
                 ->where('user_id', $penjualId)
                 ->latest()
-                ->limit(10)
+                ->limit(20)
                 ->get(),
         ]);
     }
@@ -109,6 +145,7 @@ class DashboardController extends Controller
             'today' => now()->toDateString(),
             'menus' => Menu::query()->with('penjual:id,name')->where('status', 'aktif')->orderByRaw('stok > 0 DESC')->orderBy('nama')->get(),
             'cartCount' => Cart::query()->where('user_id', $request->user()->id)->sum('jumlah'),
+            'kategoris' => Kategori::query()->orderBy('nama')->pluck('nama'),
         ]);
     }
 
@@ -116,6 +153,7 @@ class DashboardController extends Controller
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
+            'kategori' => ['required', 'exists:kategoris,nama'],
             'harga' => ['required', 'numeric', 'min:0'],
             'foto' => ['nullable', 'image', 'max:2048'],
             'stok' => ['required', 'integer', 'min:0'],
@@ -124,6 +162,7 @@ class DashboardController extends Controller
         $data = [
             'penjual_id' => $request->user()->id,
             'nama' => $validated['nama'],
+            'kategori' => $validated['kategori'],
             'harga' => $validated['harga'],
             'stok' => $validated['stok'],
             'status' => 'aktif',
@@ -135,7 +174,7 @@ class DashboardController extends Controller
 
         Menu::query()->create($data);
 
-        return redirect()->route('dashboard.penjual')->with('status', 'Menu berhasil ditambahkan.');
+        return redirect()->route('dashboard.penjual.menu')->with('status', 'Menu berhasil ditambahkan.');
     }
 
     public function updateMenu(Request $request, Menu $menu): RedirectResponse
@@ -146,6 +185,7 @@ class DashboardController extends Controller
 
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
+            'kategori' => ['required', 'exists:kategoris,nama'],
             'harga' => ['required', 'numeric', 'min:0'],
             'foto' => ['nullable', 'image', 'max:2048'],
             'stok' => ['required', 'integer', 'min:0'],
@@ -153,6 +193,7 @@ class DashboardController extends Controller
 
         $data = [
             'nama' => $validated['nama'],
+            'kategori' => $validated['kategori'],
             'harga' => $validated['harga'],
             'stok' => $validated['stok'],
         ];
@@ -166,7 +207,7 @@ class DashboardController extends Controller
 
         $menu->update($data);
 
-        return redirect()->route('dashboard.penjual')->with('status', 'Menu berhasil diperbarui.');
+        return redirect()->route('dashboard.penjual.menu')->with('status', 'Menu berhasil diperbarui.');
     }
 
     public function deleteMenu(Menu $menu): RedirectResponse
@@ -181,7 +222,7 @@ class DashboardController extends Controller
 
         $menu->delete();
 
-        return redirect()->route('dashboard.penjual')->with('status', 'Menu berhasil dihapus.');
+        return redirect()->route('dashboard.penjual.menu')->with('status', 'Menu berhasil dihapus.');
     }
 
     public function updateUserRole(Request $request, User $user): RedirectResponse
@@ -195,6 +236,26 @@ class DashboardController extends Controller
         return redirect()->route('dashboard.admin')->with('status', 'Role user berhasil diubah.');
     }
 
+    public function storePenjual(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:6'],
+        ]);
+
+        User::create([
+            'name' => $validated['name'],
+            'nama_lengkap' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => $validated['password'],
+            'role' => 'penjual',
+            'profile_completed' => false,
+        ]);
+
+        return redirect()->route('dashboard.admin')->with('status', 'Akun penjual berhasil dibuat.');
+    }
+
     public function updateOrderStatus(Request $request, Order $order): RedirectResponse
     {
         if ($order->menu?->penjual_id !== $request->user()->id) {
@@ -202,7 +263,7 @@ class DashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'status_pesanan' => ['required', 'in:diproses,selesai,dibatalkan'],
+            'status_pesanan' => ['required', 'in:diproses,siap_diambil,selesai,dibatalkan'],
         ]);
 
         $order->update(['status_pesanan' => $validated['status_pesanan']]);
@@ -469,11 +530,11 @@ class DashboardController extends Controller
             ->first();
 
         if (! $topup) {
-            return redirect()->route('dashboard.admin')->withErrors(['kode_transaksi' => 'Kode transaksi tidak ditemukan atau sudah digunakan.']);
+            return redirect()->route('dashboard.admin.penukaran')->withErrors(['kode_transaksi' => 'Kode transaksi tidak ditemukan atau sudah digunakan.']);
         }
 
         if ((float) $validated['uang_diterima'] < (float) $topup->jumlah) {
-            return redirect()->route('dashboard.admin')->withErrors(['uang_diterima' => 'Uang diterima (Rp ' . number_format((float) $validated['uang_diterima'], 0, ',', '.') . ') kurang dari jumlah top up (Rp ' . number_format((float) $topup->jumlah, 0, ',', '.') . ').']);
+            return redirect()->route('dashboard.admin.penukaran')->withErrors(['uang_diterima' => 'Uang diterima (Rp ' . number_format((float) $validated['uang_diterima'], 0, ',', '.') . ') kurang dari jumlah top up (Rp ' . number_format((float) $topup->jumlah, 0, ',', '.') . ').']);
         }
 
         $kembalian = (float) $validated['uang_diterima'] - (float) $topup->jumlah;
@@ -489,13 +550,13 @@ class DashboardController extends Controller
             $msg .= ' Kembalian: Rp ' . number_format($kembalian, 0, ',', '.') . '.';
         }
 
-        return redirect()->route('dashboard.admin')->with('status', $msg);
+        return redirect()->route('dashboard.admin.penukaran')->with('status', $msg);
     }
 
     public function confirmTopupTransfer(Request $request, Topup $topup): RedirectResponse
     {
         if ($topup->status === 'berhasil') {
-            return redirect()->route('dashboard.admin')->with('status', 'Top up sudah dikonfirmasi sebelumnya.');
+            return redirect()->route('dashboard.admin.penukaran')->with('status', 'Top up sudah dikonfirmasi sebelumnya.');
         }
 
         if ($topup->metode !== 'transfer') {
@@ -508,7 +569,7 @@ class DashboardController extends Controller
             $user->increment('saldo', (float) $topup->jumlah);
         });
 
-        return redirect()->route('dashboard.admin')->with('status', 'Top up transfer berhasil dikonfirmasi. Saldo pembeli telah ditambahkan.');
+        return redirect()->route('dashboard.admin.penukaran')->with('status', 'Top up transfer berhasil dikonfirmasi. Saldo pembeli telah ditambahkan.');
     }
 
     public function requestWithdrawal(Request $request): RedirectResponse
@@ -528,19 +589,25 @@ class DashboardController extends Controller
                 ]);
             }
 
-            $user->decrement('saldo', (float) $validated['jumlah']);
+            $jumlah = (float) $validated['jumlah'];
+            $potongan = round($jumlah * 0.10, 2);
+
+            $user->decrement('saldo', $jumlah);
 
             return Withdrawal::query()->create([
                 'user_id' => $user->id,
-                'jumlah' => $validated['jumlah'],
+                'jumlah' => $jumlah,
+                'potongan' => $potongan,
                 'kode_penukaran' => strtoupper(bin2hex(random_bytes(4))),
                 'status' => 'pending',
             ]);
         });
 
-        return redirect()->route('dashboard.penjual')
+        return redirect()->route('dashboard.penjual.tarik-tunai')
             ->with('withdrawal_kode', $withdrawal->kode_penukaran)
-            ->with('withdrawal_jumlah', (float) $withdrawal->jumlah);
+            ->with('withdrawal_jumlah', (float) $withdrawal->jumlah)
+            ->with('withdrawal_potongan', (float) $withdrawal->potongan)
+            ->with('withdrawal_diterima', (float) $withdrawal->jumlah - (float) $withdrawal->potongan);
     }
 
     public function lookupWithdrawal(Request $request): \Illuminate\Http\JsonResponse
@@ -560,9 +627,19 @@ class DashboardController extends Controller
             return response()->json(['found' => false]);
         }
 
+        $jumlah = (float) $withdrawal->jumlah;
+        $potongan = (float) $withdrawal->potongan;
+
+        // Recalculate potongan for old records that have 0
+        if ($potongan <= 0 && $jumlah > 0) {
+            $potongan = round($jumlah * 0.10, 2);
+        }
+
         return response()->json([
             'found' => true,
-            'jumlah' => (float) $withdrawal->jumlah,
+            'jumlah' => $jumlah,
+            'potongan' => $potongan,
+            'diterima' => $jumlah - $potongan,
             'user' => $withdrawal->user->name,
         ]);
     }
@@ -579,12 +656,156 @@ class DashboardController extends Controller
             ->first();
 
         if (! $withdrawal) {
-            return redirect()->route('dashboard.admin')->withErrors(['kode_penukaran' => 'Kode penukaran tidak ditemukan atau sudah digunakan.']);
+            return redirect()->route('dashboard.admin.penukaran')->withErrors(['kode_penukaran' => 'Kode penukaran tidak ditemukan atau sudah digunakan.']);
         }
 
-        $withdrawal->update(['status' => 'berhasil']);
+        // Recalculate potongan for old records that have 0
+        $potongan = (float) $withdrawal->potongan;
+        if ($potongan <= 0 && (float) $withdrawal->jumlah > 0) {
+            $potongan = round((float) $withdrawal->jumlah * 0.10, 2);
+            $withdrawal->update(['status' => 'berhasil', 'potongan' => $potongan]);
+        } else {
+            $withdrawal->update(['status' => 'berhasil']);
+        }
 
-        return redirect()->route('dashboard.admin')->with('status', 'Penukaran saldo Rp ' . number_format((float) $withdrawal->jumlah, 0, ',', '.') . ' untuk ' . $withdrawal->user->name . ' berhasil dikonfirmasi. Serahkan uang tunai kepada penjual.');
+        $diterima = (float) $withdrawal->jumlah - $potongan;
+
+        return redirect()->route('dashboard.admin.penukaran')->with('status', 'Penukaran saldo berhasil dikonfirmasi. Serahkan uang tunai Rp ' . number_format($diterima, 0, ',', '.') . ' kepada ' . $withdrawal->user->name . ' (potongan 10%: Rp ' . number_format($potongan, 0, ',', '.') . ').');
+    }
+
+    // ── Admin: Penukaran (separate page) ──
+
+    public function adminPenukaran(Request $request): View
+    {
+        return view('dashboard.admin-penukaran', [
+            'role' => 'admin',
+            'pendingTransfers' => Topup::query()
+                ->with('user:id,name')
+                ->where('status', 'pending')
+                ->where('metode', 'transfer')
+                ->latest()
+                ->get(),
+            'pendingTunaiCount' => Topup::query()
+                ->where('status', 'pending')
+                ->where('metode', 'tunai')
+                ->count(),
+            'pendingWithdrawals' => Withdrawal::query()
+                ->where('status', 'pending')
+                ->count(),
+            'withdrawalHistory' => Withdrawal::query()
+                ->with('user:id,name')
+                ->latest()
+                ->limit(20)
+                ->get(),
+        ]);
+    }
+
+    // ── Admin: Kategori CRUD ──
+
+    public function adminKategori(): View
+    {
+        return view('dashboard.admin-kategori', [
+            'role' => 'admin',
+            'kategoris' => Kategori::query()->withCount([
+                'menus',
+            ])->orderBy('nama')->get(),
+        ]);
+    }
+
+    public function storeKategori(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nama' => ['required', 'string', 'max:100', 'unique:kategoris,nama'],
+        ]);
+
+        Kategori::query()->create(['nama' => strtolower($validated['nama'])]);
+
+        return redirect()->route('dashboard.admin.kategori')->with('status', 'Kategori berhasil ditambahkan.');
+    }
+
+    public function updateKategori(Request $request, Kategori $kategori): RedirectResponse
+    {
+        $validated = $request->validate([
+            'nama' => ['required', 'string', 'max:100', 'unique:kategoris,nama,' . $kategori->id],
+        ]);
+
+        $oldName = $kategori->nama;
+        $newName = strtolower($validated['nama']);
+
+        $kategori->update(['nama' => $newName]);
+
+        // Sync menus that used the old name
+        Menu::query()->where('kategori', $oldName)->update(['kategori' => $newName]);
+
+        return redirect()->route('dashboard.admin.kategori')->with('status', 'Kategori berhasil diperbarui.');
+    }
+
+    public function deleteKategori(Kategori $kategori): RedirectResponse
+    {
+        $menuCount = Menu::query()->where('kategori', $kategori->nama)->count();
+
+        if ($menuCount > 0) {
+            return redirect()->route('dashboard.admin.kategori')->withErrors(['nama' => "Kategori '{$kategori->nama}' masih digunakan oleh {$menuCount} menu. Ubah kategori menu tersebut terlebih dahulu."]);
+        }
+
+        $kategori->delete();
+
+        return redirect()->route('dashboard.admin.kategori')->with('status', 'Kategori berhasil dihapus.');
+    }
+
+    // ── Admin: Laporan ──
+
+    public function adminLaporan(Request $request): View
+    {
+        $penjuals = User::query()
+            ->where('role', 'penjual')
+            ->withCount(['menus'])
+            ->get()
+            ->map(function (User $penjual) {
+                $penjual->total_pesanan = Order::query()
+                    ->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjual->id))
+                    ->count();
+                $penjual->total_omzet = (float) Order::query()
+                    ->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjual->id))
+                    ->sum('total_harga');
+                $penjual->pesanan_hari_ini = Order::query()
+                    ->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjual->id))
+                    ->whereDate('created_at', now()->toDateString())
+                    ->count();
+                $penjual->omzet_hari_ini = (float) Order::query()
+                    ->whereHas('menu', fn ($q) => $q->where('penjual_id', $penjual->id))
+                    ->whereDate('created_at', now()->toDateString())
+                    ->sum('total_harga');
+                return $penjual;
+            });
+
+        $selectedId = $request->query('penjual_id');
+        $detailPenjual = null;
+        $detailOrders = collect();
+        $detailMenus = collect();
+
+        if ($selectedId) {
+            $detailPenjual = User::query()->where('role', 'penjual')->findOrFail($selectedId);
+            $detailOrders = Order::query()
+                ->with(['user:id,name', 'menu:id,nama,harga'])
+                ->whereHas('menu', fn ($q) => $q->where('penjual_id', $selectedId))
+                ->latest()
+                ->limit(50)
+                ->get();
+            $detailMenus = Menu::query()
+                ->where('penjual_id', $selectedId)
+                ->withCount(['orders'])
+                ->withSum('orders', 'total_harga')
+                ->get();
+        }
+
+        return view('dashboard.admin-laporan', [
+            'role' => 'admin',
+            'penjuals' => $penjuals,
+            'detailPenjual' => $detailPenjual,
+            'detailOrders' => $detailOrders,
+            'detailMenus' => $detailMenus,
+        ]);
     }
 
     private function dashboardRouteName(string $role): string

@@ -13,12 +13,7 @@
                 </a>
             </div>
 
-            @if (session('status'))
-                <div class="status-banner">
-                    <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
-                    <span>{{ session('status') }}</span>
-                </div>
-            @endif
+
 
             <!-- Orders -->
             <div class="panel-section overflow-hidden">
@@ -49,9 +44,18 @@
                                     $statusBadge = match($order->status_pesanan) {
                                         'menunggu' => 'badge-yellow',
                                         'diproses' => 'badge-blue',
+                                        'siap_diambil' => 'badge-orange',
                                         'selesai' => 'badge-green',
                                         'dibatalkan' => 'badge-red',
                                         default => 'badge-gray',
+                                    };
+                                    $statusLabel = match($order->status_pesanan) {
+                                        'menunggu' => 'Menunggu',
+                                        'diproses' => 'Diproses',
+                                        'siap_diambil' => 'Siap Diambil',
+                                        'selesai' => 'Selesai',
+                                        'dibatalkan' => 'Dibatalkan',
+                                        default => $order->status_pesanan,
                                     };
                                     $waktuLabel = match($order->waktu_ambil) {
                                         'istirahat_1' => 'Istirahat 1',
@@ -65,7 +69,7 @@
                                     <td>{{ $order->jumlah }}</td>
                                     <td class="font-semibold" style="color: var(--brand);">Rp {{ number_format($order->total_harga, 0, ',', '.') }}</td>
                                     <td><span class="badge badge-gray">{{ $waktuLabel }}</span></td>
-                                    <td><span class="badge {{ $statusBadge }}">{{ $order->status_pesanan }}</span></td>
+                                    <td><span class="badge {{ $statusBadge }}">{{ $statusLabel }}</span></td>
                                 </tr>
                             @empty
                                 <tr>
@@ -88,9 +92,18 @@
                             $statusBadge = match($order->status_pesanan) {
                                 'menunggu' => 'badge-yellow',
                                 'diproses' => 'badge-blue',
+                                'siap_diambil' => 'badge-orange',
                                 'selesai' => 'badge-green',
                                 'dibatalkan' => 'badge-red',
                                 default => 'badge-gray',
+                            };
+                            $statusLabel = match($order->status_pesanan) {
+                                'menunggu' => 'Menunggu',
+                                'diproses' => 'Diproses',
+                                'siap_diambil' => 'Siap Diambil',
+                                'selesai' => 'Selesai',
+                                'dibatalkan' => 'Dibatalkan',
+                                default => $order->status_pesanan,
                             };
                             $waktuLabel = match($order->waktu_ambil) {
                                 'istirahat_1' => 'Istirahat 1',
@@ -104,7 +117,7 @@
                                     <p class="font-semibold text-stone-800 truncate">{{ $order->menu->nama }}</p>
                                     <p class="text-xs" style="color: var(--muted);">{{ $order->created_at->format('d M Y, H:i') }}</p>
                                 </div>
-                                <span class="badge {{ $statusBadge }} shrink-0">{{ $order->status_pesanan }}</span>
+                                <span class="badge {{ $statusBadge }} shrink-0">{{ $statusLabel }}</span>
                             </div>
                             <div class="flex items-center justify-between text-sm">
                                 <div class="flex items-center gap-3">
