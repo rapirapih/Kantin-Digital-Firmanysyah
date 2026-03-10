@@ -18,6 +18,8 @@ Route::prefix('admin')->middleware(['auth', 'role:admin'])->group(function () {
     Route::post('/topups/tunai', [DashboardController::class, 'confirmTopupTunai'])->name('dashboard.admin.topups.tunai');
     Route::patch('/topups/{topup}/confirm', [DashboardController::class, 'confirmTopupTransfer'])->name('dashboard.admin.topups.confirm');
     Route::get('/topups/lookup', [DashboardController::class, 'lookupTopupTunai'])->name('dashboard.admin.topups.lookup');
+    Route::get('/withdrawals/lookup', [DashboardController::class, 'lookupWithdrawal'])->name('dashboard.admin.withdrawals.lookup');
+    Route::post('/withdrawals/confirm', [DashboardController::class, 'confirmWithdrawal'])->name('dashboard.admin.withdrawals.confirm');
 });
 
 Route::prefix('penjual')->middleware(['auth', 'role:penjual'])->group(function () {
@@ -26,6 +28,7 @@ Route::prefix('penjual')->middleware(['auth', 'role:penjual'])->group(function (
     Route::patch('/menus/{menu}', [DashboardController::class, 'updateMenu'])->name('dashboard.penjual.menus.update');
     Route::delete('/menus/{menu}', [DashboardController::class, 'deleteMenu'])->name('dashboard.penjual.menus.delete');
     Route::patch('/orders/{order}/status', [DashboardController::class, 'updateOrderStatus'])->name('dashboard.penjual.orders.status');
+    Route::post('/withdrawal', [DashboardController::class, 'requestWithdrawal'])->name('dashboard.penjual.withdrawal.store');
 });
 
 Route::prefix('pembeli')->middleware(['auth', 'role:pembeli'])->group(function () {

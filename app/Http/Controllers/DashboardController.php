@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\Order;
 use App\Models\Topup;
 use App\Models\User;
+use App\Models\Withdrawal;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -52,6 +53,14 @@ class DashboardController extends Controller
                 ->where('status', 'pending')
                 ->where('metode', 'tunai')
                 ->count(),
+            'pendingWithdrawals' => Withdrawal::query()
+                ->where('status', 'pending')
+                ->count(),
+            'withdrawalHistory' => Withdrawal::query()
+                ->with('user:id,name')
+                ->latest()
+                ->limit(20)
+                ->get(),
         ]);
     }
 
@@ -85,6 +94,11 @@ class DashboardController extends Controller
                 'diproses' => Order::query()->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'diproses')->count(),
                 'selesai' => Order::query()->whereHas('menu', fn ($query) => $query->where('penjual_id', $penjualId))->whereDate('created_at', $today)->where('status_pesanan', 'selesai')->count(),
             ],
+            'withdrawals' => Withdrawal::query()
+                ->where('user_id', $penjualId)
+                ->latest()
+                ->limit(10)
+                ->get(),
         ]);
     }
 
@@ -340,6 +354,10 @@ class DashboardController extends Controller
                 ]);
 
                 $item->menu->decrement('stok', $item->jumlah);
+
+                // Transfer saldo ke penjual
+                $penjual = User::query()->lockForUpdate()->findOrFail($item->menu->penjual_id);
+                $penjual->increment('saldo', $totalHarga);
             }
 
             $user->decrement('saldo', $totalSemua);
@@ -491,6 +509,82 @@ class DashboardController extends Controller
         });
 
         return redirect()->route('dashboard.admin')->with('status', 'Top up transfer berhasil dikonfirmasi. Saldo pembeli telah ditambahkan.');
+    }
+
+    public function requestWithdrawal(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'jumlah' => ['required', 'numeric', 'min:1000'],
+        ]);
+
+        $authUser = $request->user();
+
+        $withdrawal = DB::transaction(function () use ($validated, $authUser) {
+            $user = User::query()->lockForUpdate()->findOrFail($authUser->id);
+
+            if ((float) $user->saldo < (float) $validated['jumlah']) {
+                throw ValidationException::withMessages([
+                    'jumlah' => ['Saldo tidak cukup. Saldo kamu Rp ' . number_format((float) $user->saldo, 0, ',', '.') . '.'],
+                ]);
+            }
+
+            $user->decrement('saldo', (float) $validated['jumlah']);
+
+            return Withdrawal::query()->create([
+                'user_id' => $user->id,
+                'jumlah' => $validated['jumlah'],
+                'kode_penukaran' => strtoupper(bin2hex(random_bytes(4))),
+                'status' => 'pending',
+            ]);
+        });
+
+        return redirect()->route('dashboard.penjual')
+            ->with('withdrawal_kode', $withdrawal->kode_penukaran)
+            ->with('withdrawal_jumlah', (float) $withdrawal->jumlah);
+    }
+
+    public function lookupWithdrawal(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $kode = strtoupper(trim($request->query('kode', '')));
+
+        if (strlen($kode) < 4) {
+            return response()->json(['found' => false]);
+        }
+
+        $withdrawal = Withdrawal::query()
+            ->where('kode_penukaran', $kode)
+            ->where('status', 'pending')
+            ->first();
+
+        if (! $withdrawal) {
+            return response()->json(['found' => false]);
+        }
+
+        return response()->json([
+            'found' => true,
+            'jumlah' => (float) $withdrawal->jumlah,
+            'user' => $withdrawal->user->name,
+        ]);
+    }
+
+    public function confirmWithdrawal(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'kode_penukaran' => ['required', 'string'],
+        ]);
+
+        $withdrawal = Withdrawal::query()
+            ->where('kode_penukaran', strtoupper($validated['kode_penukaran']))
+            ->where('status', 'pending')
+            ->first();
+
+        if (! $withdrawal) {
+            return redirect()->route('dashboard.admin')->withErrors(['kode_penukaran' => 'Kode penukaran tidak ditemukan atau sudah digunakan.']);
+        }
+
+        $withdrawal->update(['status' => 'berhasil']);
+
+        return redirect()->route('dashboard.admin')->with('status', 'Penukaran saldo Rp ' . number_format((float) $withdrawal->jumlah, 0, ',', '.') . ' untuk ' . $withdrawal->user->name . ' berhasil dikonfirmasi. Serahkan uang tunai kepada penjual.');
     }
 
     private function dashboardRouteName(string $role): string

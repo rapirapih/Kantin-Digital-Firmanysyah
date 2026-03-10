@@ -289,6 +289,124 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Penukaran Saldo Penjual -->
+            <div class="panel-section">
+                <h3 class="section-title mb-4">
+                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    Penukaran Saldo Penjual
+                    <span class="badge-yellow text-xs ml-2">{{ $pendingWithdrawals }} menunggu</span>
+                </h3>
+                <p class="text-sm mb-4" style="color: var(--muted);">Masukkan kode penukaran dari penjual. Setelah dikonfirmasi, serahkan uang tunai sesuai jumlah.</p>
+                <form method="POST" action="{{ route('dashboard.admin.withdrawals.confirm') }}" class="space-y-4"
+                      x-data="{
+                          kode: '',
+                          found: null,
+                          jumlah: 0,
+                          userName: '',
+                          loading: false,
+                          debounceTimer: null,
+                          lookup() {
+                              clearTimeout(this.debounceTimer);
+                              const val = this.kode.trim().toUpperCase();
+                              if (val.length < 4) { this.found = null; this.jumlah = 0; this.userName = ''; return; }
+                              this.loading = true;
+                              this.debounceTimer = setTimeout(() => {
+                                  fetch('{{ route('dashboard.admin.withdrawals.lookup') }}?kode=' + encodeURIComponent(val))
+                                      .then(r => r.json())
+                                      .then(d => {
+                                          this.loading = false;
+                                          this.found = d.found;
+                                          if (d.found) {
+                                              this.jumlah = d.jumlah;
+                                              this.userName = d.user;
+                                          } else {
+                                              this.jumlah = 0;
+                                              this.userName = '';
+                                          }
+                                      }).catch(() => { this.loading = false; });
+                              }, 400);
+                          }
+                      }">
+                    @csrf
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                        <div class="sm:col-span-2">
+                            <label class="field-label">Kode Penukaran</label>
+                            <input name="kode_penukaran" class="field font-mono uppercase tracking-widest text-center text-lg" placeholder="Contoh: A3F1B2C4" required maxlength="20" style="letter-spacing: 0.2em;" x-model="kode" @input="lookup()">
+                            <template x-if="loading">
+                                <p class="text-xs mt-1" style="color: var(--muted);">Mencari...</p>
+                            </template>
+                            <template x-if="!loading && found === true">
+                                <p class="text-xs mt-1 text-green-600 font-medium">
+                                    Ditemukan &mdash; <span x-text="userName"></span> &bull; Rp <span x-text="Number(jumlah).toLocaleString('id-ID')"></span>
+                                </p>
+                            </template>
+                            <template x-if="!loading && found === false">
+                                <p class="text-xs mt-1 text-red-600 font-medium">Kode tidak ditemukan atau sudah digunakan.</p>
+                            </template>
+                        </div>
+                        <button class="btn-primary">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            Konfirmasi Penukaran
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Riwayat Penukaran Saldo Penjual -->
+            <div class="panel-section overflow-hidden">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="section-title">
+                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        Riwayat Penukaran Saldo Penjual
+                    </h3>
+                    <span class="badge-gray text-xs">{{ $withdrawalHistory->count() }} data</span>
+                </div>
+
+                <div class="overflow-x-auto -mx-5 sm:-mx-6">
+                    <table class="table-clean min-w-full">
+                        <thead>
+                            <tr>
+                                <th>Penjual</th>
+                                <th>Jumlah</th>
+                                <th>Kode</th>
+                                <th>Status</th>
+                                <th>Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse ($withdrawalHistory as $wd)
+                                @php
+                                    $statusBadge = $wd->status === 'berhasil' ? 'badge-green' : 'badge-yellow';
+                                @endphp
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0" style="background: linear-gradient(135deg, #C62828 0%, #8E0000 100%);">
+                                                {{ strtoupper(substr($wd->user->name, 0, 1)) }}
+                                            </div>
+                                            <span class="font-medium text-stone-700">{{ $wd->user->name }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="font-semibold" style="color: var(--accent);">Rp {{ number_format($wd->jumlah, 0, ',', '.') }}</td>
+                                    <td><span class="font-mono text-xs tracking-widest font-bold">{{ $wd->kode_penukaran }}</span></td>
+                                    <td><span class="badge {{ $statusBadge }}">{{ $wd->status }}</span></td>
+                                    <td class="text-xs" style="color: var(--muted);">{{ $wd->created_at->format('d M Y, H:i') }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5">
+                                        <div class="empty-state">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                            <p>Belum ada riwayat penukaran saldo.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>
